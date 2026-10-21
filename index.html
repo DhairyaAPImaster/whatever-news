@@ -33,7 +33,6 @@
             padding: 30px;
         }
 
-        
         .newspaper {
             background: white;
             border: 1px solid #ccc;
@@ -102,7 +101,7 @@
         <h1>Newspapers from everyone</h1>
         <p> News for whatever you want (hence the "WHATEVER" newspaper).</p>
 
-        <div id="library"></div>
+        <div id="library">Loading newspapers...</div>
     </section>
 
     <section id="uploadSection">
@@ -138,6 +137,9 @@
     let pages = [];
     let newspapers = [];
 
+    const API_URL = "https://script.google.com/macros/s/AKfycbzcCDffN_dH9XqsbKgdLpXefYKhE2Iyn_odHgQb5XdVEFghtaI5BZpvfHExlvR0Msoo/exec";
+
+
     function showHome() {
         document.getElementById("home").style.display = "block";
         document.getElementById("uploadSection").style.display = "none";
@@ -158,8 +160,6 @@
             return;
         }
 
-
-
         pages.push(url);
 
         document.getElementById("pageURL").value = "";
@@ -172,32 +172,64 @@
             ).join("");
     }
 
-    function publishPaper() {
-      let name = document.getElementById("paperName").value.trim();
+    async function publishPaper() {
+        let name = document.getElementById("paperName").value.trim();
 
         if (name === "" || pages.length === 0) {
             alert("Enter a name and add at least one page.");
             return;
         }
-        newspapers.push({
-            name: name,
-            pages: [...pages]
-        });
-        pages = [];
 
-        document.getElementById("paperName").value = "";
-        document.getElementById("pageCount").innerText =
-            "Pages added: 0";
+        let button = document.querySelector(
+            '#uploadSection button[onclick="publishPaper()"]'
+        );
 
-        document.getElementById("pageList").innerHTML = "";
+        button.disabled = true;
+        button.textContent = "Publishing...";
 
-        updateLibrary();
-        showHome();
+        try {
+            await fetch(API_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "text/plain;charset=UTF-8"
+                },
+                body: JSON.stringify({
+                    name: name,
+                    pages: pages
+                })
+            });
+
+            pages = [];
+
+            document.getElementById("paperName").value = "";
+            document.getElementById("pageCount").innerText = "Pages added: 0";
+            document.getElementById("pageList").innerHTML = "";
+            document.getElementById("pageURL").value = "";
+
+            showHome();
+
+            document.getElementById("library").textContent =
+                "Refreshing newspaper library...";
+
+            setTimeout(loadNewspapers, 3000);
+
+        } catch (error) {
+            alert("Could not send newspaper. Please try again.");
+        } finally {
+            button.disabled = false;
+            button.textContent = "Publish newspaper";
+        }
     }
 
     function updateLibrary() {
         let library = document.getElementById("library");
         library.innerHTML = "";
+
+        if (newspapers.length === 0) {
+            library.textContent = "No newspapers yet. Be the first to upload one!";
+            return;
+        }
 
         newspapers.forEach((paper, index) => {
             let card = document.createElement("div");
@@ -222,8 +254,36 @@
         });
     }
 
+    function loadNewspapers() {
+        let callbackName = "newspaperCallback";
+
+        window[callbackName] = function(data) {
+            newspapers = data;
+            updateLibrary();
+            delete window[callbackName];
+        };
+
+        let script = document.createElement("script");
+        script.src = API_URL + "?callback=" + callbackName;
+
+        script.onerror = function() {
+            document.getElementById("library").textContent =
+                "Could not load newspapers. Please try again.";
+            delete window[callbackName];
+            script.remove();
+        };
+
+        script.onload = function() {
+            script.remove();
+        };
+
+        document.body.appendChild(script);
+    }
+
     function openPaper(index) {
         let paper = newspapers[index];
+
+        if (!paper) return;
 
         document.getElementById("home").style.display = "none";
         document.getElementById("uploadSection").style.display = "none";
@@ -250,10 +310,8 @@
             reader.appendChild(page);
         });
     }
+
+    loadNewspapers();
 </script>
 </body>
-
-
-
-
 </html>
