@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Whatever News...</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f3ee;
+            color: #222;
+        }
+        header {
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h2 {
+          margin: 0;
+        }
+
+        a {
+            color: #222;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+
+        main {
+            padding: 30px;
+        }
+
+        
+        .newspaper {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 15px;
+            width: 250px;
+            margin-top: 20px;
+        }
+
+        .newspaper img {
+            width: 100%;
+            display: block;
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        input {
+            width: 90%;
+            border: 1px solid #aaa;
+        }
+
+        button {
+          background: #222;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #uploadSection, #reader {
+            display: none;
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+
+        .page {
+            max-width: 700px;
+            width: 100%;
+            margin: 15px auto;
+        }
+
+        .page img {
+            width: 100%;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>The Whatever Newspaper....</h2>
+
+    <nav>
+        <a onclick="showHome()">Home</a>
+        <a onclick="showUpload()">Upload</a>
+    </nav>
+</header>
+
+<main>
+    <section id="home">
+        <h1>Newspapers from everyone</h1>
+        <p> News for whatever you want (hence the "WHATEVER" newspaper).</p>
+
+        <div id="library"></div>
+    </section>
+
+    <section id="uploadSection">
+        <h2>Upload a newspaper</h2>
+        <p>Enter a name and add an image link for every page.</p>
+
+        <input id="paperName"
+               placeholder="Newspaper name">
+
+        <h3>Add a page</h3>
+
+        <input id="pageURL"
+            placeholder="Paste the CDN image URL here">
+
+        <button onclick="addPage()">Add page</button>
+
+        <p id="pageCount">Pages added: 0</p>
+
+        <div id="pageList"></div>
+
+        <button onclick="publishPaper()">Publish newspaper</button>
+        <button onclick="showHome()">Cancel</button>
+    </section>
+
+    <section id="reader">
+        <h2 id="readerTitle"></h2>
+        <button onclick="showHome()">Back to library</button>
+        <div id="readerPages"></div>
+    </section>
+</main>
+
+<script>
+    let pages = [];
+    let newspapers = [];
+
+    function showHome() {
+        document.getElementById("home").style.display = "block";
+        document.getElementById("uploadSection").style.display = "none";
+        document.getElementById("reader").style.display = "none";
+    }
+
+    function showUpload() {
+        document.getElementById("home").style.display = "none";
+        document.getElementById("uploadSection").style.display = "block";
+        document.getElementById("reader").style.display = "none";
+    }
+
+    function addPage() {
+        let url = document.getElementById("pageURL").value.trim();
+
+        if (!url.startsWith("https://")) {
+            alert("Please enter a valid HTTPS image link.");
+            return;
+        }
+
+
+
+        pages.push(url);
+
+        document.getElementById("pageURL").value = "";
+        document.getElementById("pageCount").innerText =
+            "Pages added: " + pages.length;
+
+        document.getElementById("pageList").innerHTML =
+            pages.map((page, i) =>
+                "<p>Page " + (i + 1) + " added</p>"
+            ).join("");
+    }
+
+    function publishPaper() {
+      let name = document.getElementById("paperName").value.trim();
+
+        if (name === "" || pages.length === 0) {
+            alert("Enter a name and add at least one page.");
+            return;
+        }
+        newspapers.push({
+            name: name,
+            pages: [...pages]
+        });
+        pages = [];
+
+        document.getElementById("paperName").value = "";
+        document.getElementById("pageCount").innerText =
+            "Pages added: 0";
+
+        document.getElementById("pageList").innerHTML = "";
+
+        updateLibrary();
+        showHome();
+    }
+
+    function updateLibrary() {
+        let library = document.getElementById("library");
+        library.innerHTML = "";
+
+        newspapers.forEach((paper, index) => {
+            let card = document.createElement("div");
+            card.className = "newspaper";
+
+            let title = document.createElement("h3");
+            title.textContent = paper.name;
+
+            let cover = document.createElement("img");
+            cover.src = paper.pages[0];
+            cover.alt = "Cover of " + paper.name;
+
+            let info = document.createElement("p");
+            info.textContent = paper.pages.length + " page(s)";
+
+            let button = document.createElement("button");
+            button.textContent = "Read newspaper";
+            button.onclick = () => openPaper(index);
+
+            card.append(title, cover, info, button);
+            library.appendChild(card);
+        });
+    }
+
+    function openPaper(index) {
+        let paper = newspapers[index];
+
+        document.getElementById("home").style.display = "none";
+        document.getElementById("uploadSection").style.display = "none";
+        document.getElementById("reader").style.display = "block";
+
+        document.getElementById("readerTitle").textContent =
+            paper.name;
+
+        let reader = document.getElementById("readerPages");
+        reader.innerHTML = "";
+
+        paper.pages.forEach((url, index) => {
+            let page = document.createElement("div");
+            page.className = "page";
+
+            let heading = document.createElement("h3");
+            heading.textContent = "Page " + (index + 1);
+
+            let image = document.createElement("img");
+            image.src = url;
+            image.alt = "Newspaper page " + (index + 1);
+
+            page.append(heading, image);
+            reader.appendChild(page);
+        });
+    }
+</script>
+</body>
+
+
+
+
+</html>
